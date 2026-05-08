@@ -1,0 +1,1101 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>30만원 살아남기</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', 'Malgun Gothic', sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh; color: #222; padding: 20px;
+  }
+  .app { max-width: 900px; margin: 0 auto; }
+  h1 { color: #fff; text-align: center; margin-bottom: 8px; font-size: 32px; text-shadow: 2px 2px 6px rgba(0,0,0,.3); }
+  .subtitle { color: #f0e9ff; text-align: center; margin-bottom: 24px; }
+  .card {
+    background: #fff; border-radius: 16px; padding: 28px;
+    box-shadow: 0 12px 32px rgba(0,0,0,.2); margin-bottom: 20px;
+  }
+  .btn {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: #fff; border: none; padding: 12px 22px; border-radius: 10px;
+    cursor: pointer; font-size: 15px; font-weight: 600; margin: 6px;
+    transition: transform .1s, box-shadow .2s;
+  }
+  .btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(102,126,234,.4); }
+  .btn:disabled { opacity: .5; cursor: not-allowed; }
+  .btn.secondary { background: #eee; color: #333; }
+  .btn.danger { background: linear-gradient(135deg, #ff6b6b, #ee5a52); }
+  .btn.success { background: linear-gradient(135deg, #51cf66, #37b24d); }
+  .btn.large { font-size: 18px; padding: 16px 30px; }
+  input, select, textarea {
+    padding: 10px 14px; border: 2px solid #ddd; border-radius: 8px;
+    font-size: 15px; width: 100%; margin-top: 6px; font-family: inherit;
+  }
+  textarea { font-family: 'Consolas', monospace; font-size: 13px; min-height: 200px; }
+  input:focus, select:focus, textarea:focus { outline: none; border-color: #667eea; }
+  .pin-input { font-size: 28px; text-align: center; letter-spacing: 8px; font-weight: 700; }
+  .row { display: flex; gap: 12px; flex-wrap: wrap; }
+  .row > * { flex: 1; min-width: 140px; }
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px,1fr)); gap: 12px; margin-bottom: 20px; }
+  .stat {
+    background: linear-gradient(135deg, #f6f8ff, #eef0ff);
+    padding: 14px; border-radius: 12px; text-align: center; border: 2px solid #e0e4ff;
+  }
+  .stat .label { font-size: 12px; color: #666; margin-bottom: 4px; }
+  .stat .value { font-size: 22px; font-weight: 700; color: #4a3a8a; }
+  .bar { background: #eee; height: 10px; border-radius: 5px; overflow: hidden; margin-top: 6px; }
+  .bar-fill { height: 100%; transition: width .3s; }
+  .actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px,1fr)); gap: 10px; }
+  .action-btn {
+    background: #fff; border: 2px solid #e0e4ff; padding: 14px;
+    border-radius: 12px; cursor: pointer; text-align: left; transition: all .15s;
+  }
+  .action-btn:hover:not(:disabled) { border-color: #667eea; transform: translateY(-2px); box-shadow: 0 6px 14px rgba(0,0,0,.08); }
+  .action-btn:disabled { opacity: .4; cursor: not-allowed; }
+  .action-btn .name { font-weight: 700; font-size: 15px; margin-bottom: 4px; }
+  .action-btn .desc { font-size: 12px; color: #666; }
+  .action-btn .cost { color: #d6336c; font-weight: 600; font-size: 13px; margin-top: 4px; }
+  .log {
+    background: #1a1a2e; color: #e0e0e0; padding: 14px; border-radius: 10px;
+    max-height: 220px; overflow-y: auto; font-size: 13px; line-height: 1.7; font-family: 'Consolas', monospace;
+  }
+  .log .day { color: #ffd43b; font-weight: 700; }
+  .log .gain { color: #51cf66; }
+  .log .loss { color: #ff8787; }
+  .log .event { color: #74c0fc; }
+  .ranking { width: 100%; border-collapse: collapse; }
+  .ranking th, .ranking td { padding: 10px; text-align: left; border-bottom: 1px solid #eee; }
+  .ranking th { background: #f6f8ff; color: #4a3a8a; }
+  .ranking tr:nth-child(1) td { background: #fff9db; font-weight: 700; }
+  .ranking tr:nth-child(2) td { background: #f8f9fa; }
+  .ranking tr:nth-child(3) td { background: #fff4e6; }
+  .badge { display: inline-block; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; }
+  .badge.solo { background: #e7f5ff; color: #1971c2; }
+  .badge.team { background: #ffe3e3; color: #c92a2a; }
+  .player-card {
+    background: #f8f9ff; padding: 12px 14px; border-radius: 10px; margin-bottom: 8px;
+    border-left: 5px solid #667eea; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;
+  }
+  .player-card.active { border-left-color: #ff6b6b; box-shadow: 0 4px 12px rgba(255,107,107,.2); }
+  .player-card.done { opacity: .6; }
+  .pin-display {
+    background: linear-gradient(135deg, #ffd43b, #fab005);
+    color: #5c3d00; font-size: 64px; font-weight: 800; text-align: center;
+    padding: 24px; border-radius: 16px; letter-spacing: 12px;
+    margin: 20px 0; box-shadow: 0 8px 24px rgba(250,176,5,.4);
+  }
+  .nickname-tag {
+    display: inline-block; background: linear-gradient(135deg, #74c0fc, #4dabf7);
+    color: #fff; padding: 8px 14px; border-radius: 20px; margin: 4px;
+    font-weight: 600; font-size: 14px;
+  }
+  .nickname-tag.team-A { background: linear-gradient(135deg, #ff8787, #fa5252); }
+  .nickname-tag.team-B { background: linear-gradient(135deg, #69db7c, #40c057); }
+  .nickname-tag.team-C { background: linear-gradient(135deg, #ffa94d, #fd7e14); }
+  .nickname-tag.team-D { background: linear-gradient(135deg, #b197fc, #845ef7); }
+  h2 { color: #4a3a8a; margin-bottom: 14px; }
+  h3 { color: #333; margin-bottom: 10px; margin-top: 14px; }
+  .center { text-align: center; }
+  .muted { color: #888; font-size: 13px; }
+  .turn-banner {
+    background: linear-gradient(135deg, #ff6b6b, #f06595);
+    color: #fff; padding: 12px; border-radius: 10px;
+    text-align: center; font-weight: 700; margin-bottom: 14px;
+  }
+  .alert { background: #fff3bf; border-left: 5px solid #fab005; padding: 12px 16px; border-radius: 8px; margin-bottom: 14px; }
+  .alert.info { background: #d0ebff; border-left-color: #339af0; }
+  .alert.success { background: #d3f9d8; border-left-color: #51cf66; }
+  .alert.error { background: #ffe3e3; border-left-color: #fa5252; }
+  .hidden { display: none !important; }
+  .room-info {
+    display: flex; justify-content: space-between; align-items: center;
+    background: #f6f8ff; padding: 10px 16px; border-radius: 10px; margin-bottom: 16px;
+    flex-wrap: wrap; gap: 8px;
+  }
+  .conn-status {
+    position: fixed; top: 12px; right: 12px; padding: 6px 12px; border-radius: 20px;
+    font-size: 12px; font-weight: 600; background: #fff; box-shadow: 0 2px 6px rgba(0,0,0,.15); z-index: 100;
+  }
+  .conn-status.online { color: #2b8a3e; }
+  .conn-status.offline { color: #c92a2a; }
+  details { background: #f8f9fa; padding: 12px; border-radius: 8px; margin-top: 10px; }
+  summary { cursor: pointer; font-weight: 600; color: #4a3a8a; }
+  pre { background: #1a1a2e; color: #e0e0e0; padding: 12px; border-radius: 6px; overflow-x: auto; font-size: 12px; margin-top: 8px; }
+  ol li { margin-bottom: 8px; line-height: 1.6; }
+  @keyframes pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.03); } }
+  .pulse { animation: pulse 1.5s infinite; }
+</style>
+</head>
+<body>
+<div id="conn-status" class="conn-status offline">⚪ 연결 중...</div>
+
+<div class="app">
+  <h1>💸 30만원 살아남기</h1>
+  <p class="subtitle">한 달 용돈 30만원으로 30일을 버텨라!</p>
+
+  <!-- Firebase 설정 안내 -->
+  <div id="setup-firebase" class="card hidden">
+    <h2>🔥 Firebase 설정이 필요합니다</h2>
+    <div class="alert error">
+      서로 다른 기기에서 접속하려면 Firebase Realtime Database를 연결해야 합니다.<br>
+      아래 안내에 따라 설정해 주세요. (무료 / 5분 소요)
+    </div>
+    <details open>
+      <summary>📋 설정 방법 (한 번만 하면 됩니다)</summary>
+      <ol style="margin-left:20px; margin-top:10px;">
+        <li><a href="https://console.firebase.google.com/" target="_blank">Firebase 콘솔</a>에 구글 계정으로 로그인</li>
+        <li><b>프로젝트 추가</b> → 이름 입력 (예: money-game) → Google Analytics는 끄기 → 만들기</li>
+        <li>왼쪽 메뉴에서 <b>빌드 → Realtime Database</b> 클릭 → <b>데이터베이스 만들기</b></li>
+        <li>위치는 그대로 두고 → <b>테스트 모드로 시작</b> 선택 → 사용 설정</li>
+        <li>상단 <b>규칙</b> 탭 클릭 → 아래 규칙으로 변경 후 게시:
+<pre>{
+  "rules": {
+    ".read": true,
+    ".write": true
+  }
+}</pre>
+          <small class="muted">※ 교실 게임용 임시 규칙입니다. 누구나 읽기/쓰기 가능. 더 안전하게 하려면 인증을 추가하세요.</small>
+        </li>
+        <li>좌측 상단 ⚙️ <b>프로젝트 설정</b> → 하단 <b>내 앱</b>에서 <b>웹(&lt;/&gt;)</b> 아이콘 클릭</li>
+        <li>앱 닉네임 입력 → <b>앱 등록</b> → 표시되는 <code>firebaseConfig</code> 객체 복사</li>
+        <li>아래 칸에 붙여넣고 <b>저장</b> 클릭</li>
+      </ol>
+    </details>
+    <label style="margin-top:14px; display:block;">firebaseConfig 객체 (통째로 붙여넣기)</label>
+    <textarea id="fb-config-input" placeholder='{
+  apiKey: "AIza...",
+  authDomain: "xxx.firebaseapp.com",
+  databaseURL: "https://xxx-default-rtdb.firebaseio.com",
+  projectId: "xxx",
+  ...
+}'></textarea>
+    <div class="row" style="margin-top:14px;">
+      <button class="btn success large" onclick="saveFirebaseConfig()">저장하고 시작 🚀</button>
+      <button class="btn secondary" onclick="useLocalMode()">백엔드 없이 로컬로만 사용</button>
+    </div>
+  </div>
+
+  <!-- 로딩 -->
+  <div id="loading" class="card hidden">
+    <p class="center">⏳ 연결 중...</p>
+  </div>
+
+  <!-- 메인 메뉴 -->
+  <div id="menu" class="card hidden">
+    <h2>👋 환영합니다</h2>
+    <p class="muted" style="margin-bottom:18px;">선생님은 방을 만들고, 학생은 PIN 번호로 입장하세요. 어느 기기에서든 접속 가능합니다.</p>
+    <div class="row">
+      <button class="btn large" onclick="goTeacher()">👨‍🏫 선생님 (방 만들기)</button>
+      <button class="btn large success" onclick="goStudent()">🧑‍🎓 학생 (방 입장)</button>
+    </div>
+    <div class="row" style="margin-top:10px;">
+      <button class="btn secondary" onclick="showRanking()">🏆 랭킹 보기</button>
+      <button class="btn secondary" onclick="toggleHowto()">📖 게임 방법</button>
+      <button class="btn secondary" onclick="resetFirebase()">⚙️ Firebase 재설정</button>
+    </div>
+    <div id="howto" class="hidden" style="margin-top:18px; padding:14px; background:#f6f8ff; border-radius:10px;">
+      <h3>게임 방법</h3>
+      <ul style="margin-left:20px; line-height:1.8;">
+        <li>30만원으로 30일을 버티세요.</li>
+        <li>매일 식사·교통·여가를 선택합니다.</li>
+        <li><b>배고픔/행복/스트레스</b> 관리. 임계치를 넘으면 페널티!</li>
+        <li>중간중간 <b>예상치 못한 사건</b>이 일어납니다.</li>
+        <li>점수 = 남은 돈 + 행복×1000 - 스트레스×500 + 완주 보너스</li>
+        <li>창을 닫아도 자동 복구됩니다.</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- 선생님: 방 만들기 -->
+  <div id="teacher-create" class="card hidden">
+    <h2>👨‍🏫 방 만들기</h2>
+    <label>선생님 이름 (선택)</label>
+    <input id="teacher-name" placeholder="예: 김선생" maxlength="20">
+    <label style="margin-top:14px; display:block;">게임 모드</label>
+    <div class="row">
+      <button id="mode-solo" class="btn" onclick="selectMode('solo')">👤 개인전</button>
+      <button id="mode-team" class="btn secondary" onclick="selectMode('team')">👥 팀전</button>
+    </div>
+    <div id="team-settings" class="hidden" style="margin-top:14px;">
+      <label>팀 수 (2~4)</label>
+      <input id="team-count" type="number" value="2" min="2" max="4">
+    </div>
+    <div class="row" style="margin-top:18px;">
+      <button class="btn success large" onclick="createRoom()">방 만들기 🎲</button>
+      <button class="btn secondary" onclick="backToMenu()">취소</button>
+    </div>
+  </div>
+
+  <!-- 선생님: 로비 -->
+  <div id="teacher-lobby" class="card hidden">
+    <h2>🎯 방 로비</h2>
+    <div class="alert success">
+      학생들에게 아래 <b>PIN 번호</b>를 알려주세요. 학생이 자기 폰/태블릿으로 사이트에 접속해 PIN을 입력하면 자동으로 입장합니다.
+    </div>
+    <div class="muted center">PIN 번호</div>
+    <div id="pin-display" class="pin-display pulse">0000</div>
+    <div class="room-info">
+      <span>모드: <b id="lobby-mode"></b></span>
+      <span>참가자: <b id="lobby-count">0</b>명</span>
+    </div>
+    <h3>📋 입장한 학생들 (실시간)</h3>
+    <div id="lobby-students" style="min-height:60px; padding:12px; background:#f8f9fa; border-radius:10px;"></div>
+    <h3 style="margin-top:18px;">➕ 직접 추가</h3>
+    <div class="row">
+      <input id="quick-nick" placeholder="닉네임">
+      <select id="quick-team" class="hidden"></select>
+      <button class="btn" onclick="quickAddStudent()">추가</button>
+    </div>
+    <div class="row" style="margin-top:18px;">
+      <button id="start-game-btn" class="btn success large" onclick="startGame()" disabled>게임 시작 🚀</button>
+      <button class="btn danger" onclick="closeRoom()">방 폐쇄</button>
+    </div>
+  </div>
+
+  <!-- 학생: 입장 -->
+  <div id="student-join" class="card hidden">
+    <h2>🧑‍🎓 방 입장</h2>
+    <label>PIN 번호 (4자리)</label>
+    <input id="join-pin" class="pin-input" maxlength="4" placeholder="0000" inputmode="numeric">
+    <label style="margin-top:14px; display:block;">닉네임</label>
+    <input id="join-nick" placeholder="예: 똑똑한사자" maxlength="12">
+    <div id="join-team-wrap" class="hidden" style="margin-top:14px;">
+      <label>팀 선택</label>
+      <select id="join-team"></select>
+    </div>
+    <div class="row" style="margin-top:18px;">
+      <button class="btn success large" onclick="joinRoom()">입장하기</button>
+      <button class="btn secondary" onclick="backToMenu()">취소</button>
+    </div>
+  </div>
+
+  <!-- 학생: 대기 -->
+  <div id="student-wait" class="card hidden">
+    <h2>⏳ 대기 중</h2>
+    <div class="alert info">선생님이 게임을 시작할 때까지 기다려 주세요.</div>
+    <div class="room-info">
+      <span>PIN: <b id="wait-pin"></b></span>
+      <span>내 닉네임: <b id="wait-mynick"></b></span>
+    </div>
+    <h3>📋 함께하는 친구들 (실시간)</h3>
+    <div id="wait-students" style="min-height:60px; padding:12px; background:#f8f9fa; border-radius:10px;"></div>
+    <div class="row" style="margin-top:18px;">
+      <button class="btn danger" onclick="leaveRoom()">나가기</button>
+    </div>
+  </div>
+
+  <!-- 게임 화면 -->
+  <div id="game" class="hidden">
+    <div class="card" style="padding:14px 20px;">
+      <div class="room-info" style="margin:0;">
+        <span>PIN: <b id="game-pin"></b></span>
+        <span>모드: <b id="game-mode"></b></span>
+        <span class="muted">☁️ 클라우드 자동 저장</span>
+      </div>
+    </div>
+    <div id="players-overview" class="card"></div>
+    <div class="card">
+      <div id="turn-banner" class="turn-banner"></div>
+      <div class="stats" id="stats"></div>
+      <div id="game-controls">
+        <h3>📅 오늘 무엇을 할까요?</h3>
+        <h3 style="font-size:14px; color:#666;">🍚 식사 (필수)</h3>
+        <div class="actions" id="meal-actions"></div>
+        <h3 style="font-size:14px; color:#666;">🚌 교통</h3>
+        <div class="actions" id="transport-actions"></div>
+        <h3 style="font-size:14px; color:#666;">🎉 여가 (선택)</h3>
+        <div class="actions" id="leisure-actions"></div>
+        <div style="margin-top:18px;" class="row">
+          <button class="btn" id="next-day-btn" onclick="nextDay()" disabled>하루 마감 ➡️</button>
+          <button class="btn secondary" onclick="confirmQuit()">현재 플레이어 포기</button>
+          <button class="btn danger" onclick="exitGame()" id="exit-btn">게임 종료</button>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <h3>📜 일지</h3>
+      <div class="log" id="log"></div>
+    </div>
+  </div>
+
+  <!-- 결과 -->
+  <div id="result" class="card hidden">
+    <h2 id="result-title">🎊 결과</h2>
+    <div id="result-body"></div>
+    <div class="row" style="margin-top:18px;">
+      <button class="btn" onclick="backToMenu()">메인으로</button>
+      <button class="btn secondary" onclick="showRanking()">랭킹 보기</button>
+    </div>
+  </div>
+
+  <!-- 랭킹 -->
+  <div id="ranking" class="card hidden">
+    <h2>🏆 명예의 전당 (전체 공유)</h2>
+    <div class="row" style="margin-bottom:14px;">
+      <button class="btn secondary" onclick="filterRank('all')">전체</button>
+      <button class="btn secondary" onclick="filterRank('solo')">개인전</button>
+      <button class="btn secondary" onclick="filterRank('team')">팀전</button>
+      <button class="btn danger" onclick="clearRank()">초기화</button>
+    </div>
+    <div id="ranking-body"></div>
+    <div class="row" style="margin-top:14px;">
+      <button class="btn" onclick="backToMenu()">메인으로</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script>
+
+// ==================== Firebase 기본 설정 (배포용) ====================
+// 학생들이 별도 설정 없이 접속하도록 firebaseConfig를 내장합니다.
+const DEFAULT_FIREBASE_CONFIG = {
+  apiKey: "AIzaSyD427kbcxYBicdNdoKtQqjoWyhjzS6PKXE",
+  authDomain: "moneygame-fdb83.firebaseapp.com",
+  databaseURL: "https://moneygame-fdb83-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "moneygame-fdb83",
+  storageBucket: "moneygame-fdb83.firebasestorage.app",
+  messagingSenderId: "635076212995",
+  appId: "1:635076212995:web:ad82bda414792909719136",
+  measurementId: "G-LLP3CNJZTR"
+};
+
+// ==================== 상수 ====================
+const STARTING_MONEY = 300000;
+const TOTAL_DAYS = 30;
+const FB_CFG_KEY = 'money_fb_config';
+const LOCAL_MODE_KEY = 'money_local_mode';
+const MY_ROLE_KEY = 'money_my_role';
+const MY_PIN_KEY = 'money_my_pin';
+const MY_NICK_KEY = 'money_my_nick';
+const MY_STUDENT_ID_KEY = 'money_my_sid';
+
+const MEALS = [
+  { id:'skip', name:'굶기', cost:0, hunger:-30, happy:-10, stress:+10, desc:'배가 너무 고파요...' },
+  { id:'conv', name:'편의점 삼각김밥', cost:2500, hunger:+15, happy:+2, stress:+2, desc:'간단하지만 허기는 면해요' },
+  { id:'home', name:'집밥', cost:4000, hunger:+25, happy:+8, stress:-2, desc:'든든하고 가성비 좋음' },
+  { id:'kbab', name:'김밥천국', cost:7000, hunger:+30, happy:+10, stress:-3, desc:'무난한 외식' },
+  { id:'rest', name:'분식집', cost:9000, hunger:+30, happy:+15, stress:-5, desc:'맛있어요!' },
+  { id:'lux', name:'고깃집', cost:25000, hunger:+40, happy:+30, stress:-10, desc:'호화로운 한 끼 🥩' },
+];
+const TRANSPORTS = [
+  { id:'walk', name:'도보', cost:0, happy:-2, stress:+5, desc:'무료지만 힘들어요' },
+  { id:'bus', name:'버스/지하철', cost:1500, happy:0, stress:0, desc:'평범한 출퇴근' },
+  { id:'taxi', name:'택시', cost:8000, happy:+10, stress:-8, desc:'편하지만 비싸요' },
+];
+const LEISURES = [
+  { id:'none', name:'아무것도 안 함', cost:0, happy:0, stress:+3, desc:'쉬는 것도 좋아요' },
+  { id:'walk', name:'산책', cost:0, happy:+5, stress:-5, desc:'공짜 힐링' },
+  { id:'cafe', name:'카페', cost:6000, happy:+10, stress:-8, desc:'아메리카노 한 잔' },
+  { id:'movie', name:'영화관람', cost:15000, happy:+20, stress:-15, desc:'스트레스 해소!' },
+  { id:'shop', name:'쇼핑', cost:30000, happy:+30, stress:-20, desc:'지름신 강림 💳' },
+  { id:'game', name:'PC방', cost:5000, happy:+15, stress:-10, desc:'겜 한판!' },
+];
+const EVENTS = [
+  { p:.06, money:-15000, happy:+10, stress:0, text:'친구 생일! 선물값 15,000원 🎂' },
+  { p:.05, money:-3000, happy:0, stress:+5, text:'교통비 추가 3,000원 🚌' },
+  { p:.04, money:+20000, happy:+10, stress:-5, text:'알바 보너스 +20,000원 💼' },
+  { p:.04, money:+5000, happy:+15, stress:-5, text:'길에서 5,000원 발견! 🍀' },
+  { p:.05, money:-8000, happy:-10, stress:+10, text:'감기약값 8,000원 😷' },
+  { p:.03, money:-50000, happy:-20, stress:+25, text:'폰 액정 수리비 50,000원... 📱' },
+  { p:.04, money:-30000, happy:-5, stress:+10, text:'경조사비 30,000원 💐' },
+  { p:.05, money:0, happy:+8, stress:-5, text:'무료 카페 쿠폰 당첨! ☕' },
+  { p:.04, money:-25000, happy:+25, stress:-10, text:'데이트 25,000원 💕' },
+  { p:.03, money:-10000, happy:+10, stress:0, text:'옷 세일! 10,000원 지름 🏷️' },
+];
+
+// ==================== 유틸 ====================
+const el = id => document.getElementById(id);
+const showEl = id => el(id).classList.remove('hidden');
+const hideEl = id => el(id).classList.add('hidden');
+const fmt = n => n.toLocaleString('ko-KR') + '원';
+const clamp = (v,lo,hi) => Math.max(lo, Math.min(hi, v));
+const allScreens = ['setup-firebase','loading','menu','teacher-create','teacher-lobby','student-join','student-wait','game','result','ranking'];
+function showOnly(id){ allScreens.forEach(hideEl); showEl(id); }
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+// ==================== 상태 ====================
+let db = null;
+let localMode = false;
+let room = null;
+let roomUnsub = null;
+let myRole = sessionStorage.getItem(MY_ROLE_KEY) || null;
+let myPin = sessionStorage.getItem(MY_PIN_KEY) || null;
+let myNick = sessionStorage.getItem(MY_NICK_KEY) || null;
+let myStudentId = sessionStorage.getItem(MY_STUDENT_ID_KEY) || null;
+let chosenToday = { meal:null, transport:null, leisure:null };
+let createMode = 'solo';
+let writingNow = false;
+
+function setMyState(role, pin, nick, sid){
+  myRole = role; myPin = pin; myNick = nick||null; myStudentId = sid||null;
+  const sm = { [MY_ROLE_KEY]: role, [MY_PIN_KEY]: pin, [MY_NICK_KEY]: nick, [MY_STUDENT_ID_KEY]: sid };
+  for (const k in sm) {
+    if (sm[k]) sessionStorage.setItem(k, sm[k]);
+    else sessionStorage.removeItem(k);
+  }
+}
+
+// ==================== Firebase 초기화 ====================
+function setConn(online, label){
+  const c = el('conn-status');
+  c.className = 'conn-status ' + (online?'online':'offline');
+  c.textContent = (online?'🟢 ':'🔴 ') + label;
+}
+
+function initFirebase(){
+  if (localStorage.getItem(LOCAL_MODE_KEY) === '1'){
+    localMode = true;
+    setConn(true, '로컬 모드');
+    showOnly('menu');
+    return;
+  }
+  const cfgStr = localStorage.getItem(FB_CFG_KEY);
+  let cfg = null;
+  if (cfgStr) {
+    try { cfg = parseConfig(cfgStr); } catch {}
+  }
+  if (!cfg && DEFAULT_FIREBASE_CONFIG && DEFAULT_FIREBASE_CONFIG.apiKey) {
+    cfg = DEFAULT_FIREBASE_CONFIG;
+  }
+  if (!cfg){ showOnly('setup-firebase'); setConn(false, 'Firebase 미설정'); return; }
+  try {
+    const app = firebase.initializeApp(cfg);
+    db = firebase.database(app);
+    setConn(true, '클라우드 연결됨');
+    afterInit();
+  } catch (e) {
+    console.error(e);
+    if (cfgStr) el('fb-config-input').value = cfgStr;
+    showOnly('setup-firebase');
+    alert('Firebase 설정에 문제가 있습니다: ' + e.message);
+  }
+}
+
+function parseConfig(s){
+  s = s.trim();
+  try { return JSON.parse(s); } catch {}
+  // apiKey를 포함하는 {...} 블록만 추출 (import { } 등 다른 중괄호 무시)
+  const m = s.match(/\{[^{}]*apiKey[^{}]*\}/);
+  if (!m) throw new Error('apiKey를 포함하는 설정 객체를 찾을 수 없습니다.');
+  let js = m[0];
+  js = js.replace(/([{,]\s*)([a-zA-Z_$]\w*)\s*:/g, '$1"$2":');
+  js = js.replace(/'/g, '"');
+  js = js.replace(/,(\s*[}\]])/g, '$1');
+  return JSON.parse(js);
+}
+
+window.saveFirebaseConfig = function(){
+  const raw = el('fb-config-input').value.trim();
+  if (!raw){ alert('설정을 붙여넣으세요.'); return; }
+  try {
+    const cfg = parseConfig(raw);
+    if (!cfg.databaseURL && !cfg.projectId){ alert('databaseURL 또는 projectId가 없습니다. Realtime Database를 만들었는지 확인하세요.'); return; }
+    if (!cfg.databaseURL){
+      // 자동 추정
+      cfg.databaseURL = `https://${cfg.projectId}-default-rtdb.firebaseio.com`;
+    }
+    localStorage.setItem(FB_CFG_KEY, JSON.stringify(cfg));
+    localStorage.removeItem(LOCAL_MODE_KEY);
+    location.reload();
+  } catch (e) {
+    alert('파싱 실패: ' + e.message + '\n\nfirebaseConfig 객체 전체를 복사해서 붙여넣어 주세요.');
+  }
+};
+
+window.useLocalMode = function(){
+  localStorage.setItem(LOCAL_MODE_KEY, '1');
+  location.reload();
+};
+window.resetFirebase = function(){
+  if (!confirm('Firebase 설정을 다시 입력하시겠습니까?')) return;
+  localStorage.removeItem(FB_CFG_KEY);
+  localStorage.removeItem(LOCAL_MODE_KEY);
+  location.reload();
+};
+
+// ==================== 초기 진입 후 ====================
+async function afterInit(){
+  if (myRole && myPin){
+    showOnly('loading');
+    subscribeRoom(myPin, () => rerender());
+    return;
+  }
+  showOnly('menu');
+}
+
+// ==================== Room 헬퍼 ====================
+async function genPin(){
+  for (let i=0; i<20; i++){
+    const pin = String(Math.floor(1000 + Math.random()*9000));
+    if (localMode){
+      if (!localStorage.getItem('room_'+pin)) return pin;
+    } else {
+      const snap = await db.ref('rooms/'+pin).get();
+      if (!snap.exists()) return pin;
+    }
+  }
+  throw new Error('PIN 생성 실패');
+}
+
+function subscribeRoom(pin, cb){
+  if (roomUnsub){ roomUnsub(); roomUnsub = null; }
+  if (localMode){
+    const load = () => {
+      const s = localStorage.getItem('room_'+pin);
+      room = s ? JSON.parse(s) : null;
+      cb && cb();
+    };
+    load();
+    const handler = (e) => { if (e.key === 'room_'+pin) load(); };
+    window.addEventListener('storage', handler);
+    roomUnsub = () => window.removeEventListener('storage', handler);
+    return;
+  }
+  const r = db.ref('rooms/'+pin);
+  const fn = r.on('value', (snap) => {
+    room = snap.val();
+    if (room && !room.students) room.students = {};
+    if (room && !room.players) room.players = [];
+    cb && cb();
+  });
+  roomUnsub = () => r.off('value', fn);
+}
+
+async function saveRoom(r){
+  if (localMode){
+    localStorage.setItem('room_'+r.pin, JSON.stringify(r));
+    // 같은 탭 내에서는 storage 이벤트가 안 옴 → 직접 갱신
+    room = r;
+    rerender();
+    return;
+  }
+  await db.ref('rooms/'+r.pin).set(r);
+}
+
+async function updateRoom(pin, partial){
+  if (localMode){
+    const r = JSON.parse(localStorage.getItem('room_'+pin) || 'null');
+    if (!r) return;
+    Object.assign(r, partial);
+    await saveRoom(r);
+    return;
+  }
+  await db.ref('rooms/'+pin).update(partial);
+}
+
+async function deleteRoom(pin){
+  if (localMode){ localStorage.removeItem('room_'+pin); return; }
+  await db.ref('rooms/'+pin).remove();
+}
+
+async function loadRoomOnce(pin){
+  if (localMode){
+    const s = localStorage.getItem('room_'+pin);
+    return s ? JSON.parse(s) : null;
+  }
+  const snap = await db.ref('rooms/'+pin).get();
+  return snap.val();
+}
+
+// ==================== 화면 라우팅 ====================
+function rerender(){
+  if (!room){
+    if (myRole){ // 방이 사라짐
+      alert('방이 종료되었습니다.');
+      setMyState(null,null,null,null);
+      backToMenu();
+    } else {
+      showOnly('menu');
+    }
+    return;
+  }
+  const studentsObj = room.students || {};
+  const studentsArr = Object.entries(studentsObj).map(([id,s]) => ({...s, id}))
+    .sort((a,b) => (a.joinedAt||0) - (b.joinedAt||0));
+  room._studentsArr = studentsArr;
+
+  if (myRole === 'teacher') {
+    if (room.status === 'lobby') { showOnly('teacher-lobby'); renderTeacherLobby(); }
+    else if (room.status === 'playing') { showOnly('game'); renderTurn(); }
+    else if (room.status === 'finished') { showOnly('result'); renderResult(); }
+  } else if (myRole === 'student') {
+    if (room.status === 'lobby') { showOnly('student-wait'); renderStudentWait(); }
+    else if (room.status === 'playing') { showOnly('game'); renderTurn(); }
+    else if (room.status === 'finished') { showOnly('result'); renderResult(); }
+  }
+}
+
+window.backToMenu = function(){
+  if (roomUnsub){ roomUnsub(); roomUnsub = null; }
+  setMyState(null,null,null,null);
+  room = null;
+  showOnly('menu');
+};
+
+window.toggleHowto = function(){ el('howto').classList.toggle('hidden'); };
+
+// ==================== 선생님: 방 만들기 ====================
+window.goTeacher = function(){ showOnly('teacher-create'); selectMode('solo'); el('teacher-name').value=''; };
+window.selectMode = function(m){
+  createMode = m;
+  el('mode-solo').className = 'btn ' + (m==='solo'?'':'secondary');
+  el('mode-team').className = 'btn ' + (m==='team'?'':'secondary');
+  el('team-settings').classList.toggle('hidden', m!=='team');
+};
+window.createRoom = async function(){
+  try {
+    showOnly('loading');
+    const teacherName = el('teacher-name').value.trim() || '선생님';
+    const pin = await genPin();
+    const newRoom = {
+      pin, teacherName, mode: createMode,
+      teamCount: createMode === 'team' ? parseInt(el('team-count').value) : 0,
+      students: {},
+      status: 'lobby',
+      players: [],
+      currentIdx: 0,
+      createdAt: Date.now(),
+    };
+    await saveRoom(newRoom);
+    setMyState('teacher', pin, null, null);
+    subscribeRoom(pin, () => rerender());
+  } catch (e) {
+    alert('방 생성 실패: ' + e.message);
+    showOnly('menu');
+  }
+};
+
+// ==================== 선생님: 로비 ====================
+function renderTeacherLobby(){
+  el('pin-display').textContent = room.pin;
+  el('lobby-mode').textContent = room.mode === 'team' ? `팀전 (${room.teamCount}팀)` : '개인전';
+  const arr = room._studentsArr;
+  el('lobby-count').textContent = arr.length;
+  if (arr.length === 0){
+    el('lobby-students').innerHTML = '<p class="muted center">아직 입장한 학생이 없습니다. PIN을 학생에게 알려주세요!</p>';
+  } else {
+    el('lobby-students').innerHTML = arr.map(s => {
+      const teamCls = s.team ? 'team-' + String.fromCharCode(64 + s.team) : '';
+      const teamTxt = s.team ? ` <small>(팀${s.team})</small>` : '';
+      return `<span class="nickname-tag ${teamCls}">${escapeHtml(s.nickname)}${teamTxt}</span>`;
+    }).join('');
+  }
+  if (room.mode === 'team'){
+    el('quick-team').classList.remove('hidden');
+    el('quick-team').innerHTML = '<option value="">팀 선택</option>' +
+      Array.from({length:room.teamCount},(_,i)=>`<option value="${i+1}">팀 ${i+1}</option>`).join('');
+  } else {
+    el('quick-team').classList.add('hidden');
+  }
+  el('start-game-btn').disabled = arr.length === 0;
+}
+
+window.quickAddStudent = async function(){
+  const nick = el('quick-nick').value.trim();
+  if (!nick){ alert('닉네임을 입력하세요.'); return; }
+  const arr = room._studentsArr;
+  if (arr.some(s => s.nickname === nick)){ alert('이미 존재하는 닉네임입니다.'); return; }
+  let team = null;
+  if (room.mode === 'team'){
+    team = parseInt(el('quick-team').value);
+    if (!team){ alert('팀을 선택하세요.'); return; }
+  }
+  const newStudent = { nickname: nick, team: team||null, joinedAt: Date.now() };
+  if (localMode){
+    const id = 's_'+Date.now()+'_'+Math.random().toString(36).slice(2,6);
+    room.students = room.students || {};
+    room.students[id] = newStudent;
+    await saveRoom(room);
+  } else {
+    await db.ref('rooms/'+room.pin+'/students').push(newStudent);
+  }
+  el('quick-nick').value = '';
+};
+
+window.closeRoom = async function(){
+  if (!confirm(`방(PIN ${room.pin})을 닫으시겠습니까? 모든 데이터가 삭제됩니다.`)) return;
+  await deleteRoom(room.pin);
+  backToMenu();
+};
+
+// ==================== 학생: 입장 ====================
+window.goStudent = function(){
+  showOnly('student-join');
+  el('join-pin').value = '';
+  el('join-nick').value = '';
+  el('join-pin').oninput = checkJoinPin;
+  hideEl('join-team-wrap');
+};
+
+async function checkJoinPin(){
+  const pin = el('join-pin').value.trim();
+  if (pin.length !== 4) { hideEl('join-team-wrap'); return; }
+  const r = await loadRoomOnce(pin);
+  if (!r) { hideEl('join-team-wrap'); return; }
+  if (r.mode === 'team'){
+    showEl('join-team-wrap');
+    el('join-team').innerHTML = '<option value="">팀 선택</option>' +
+      Array.from({length:r.teamCount},(_,i)=>`<option value="${i+1}">팀 ${i+1}</option>`).join('');
+  } else {
+    hideEl('join-team-wrap');
+  }
+}
+
+window.joinRoom = async function(){
+  const pin = el('join-pin').value.trim();
+  const nick = el('join-nick').value.trim();
+  if (!/^\d{4}$/.test(pin)){ alert('PIN 4자리를 입력하세요.'); return; }
+  if (!nick){ alert('닉네임을 입력하세요.'); return; }
+  const r = await loadRoomOnce(pin);
+  if (!r){ alert('해당 PIN의 방을 찾을 수 없습니다.'); return; }
+  if (r.status !== 'lobby'){ alert('이미 게임이 시작되었거나 종료된 방입니다.'); return; }
+  const existing = Object.values(r.students || {});
+  if (existing.some(s => s.nickname === nick)){ alert('이미 사용 중인 닉네임입니다.'); return; }
+  let team = null;
+  if (r.mode === 'team'){
+    team = parseInt(el('join-team').value);
+    if (!team){ alert('팀을 선택하세요.'); return; }
+  }
+  const newStudent = { nickname: nick, team: team||null, joinedAt: Date.now() };
+  let sid;
+  if (localMode){
+    sid = 's_'+Date.now()+'_'+Math.random().toString(36).slice(2,6);
+    r.students = r.students || {};
+    r.students[sid] = newStudent;
+    await saveRoom(r);
+  } else {
+    const pushRef = await db.ref('rooms/'+pin+'/students').push(newStudent);
+    sid = pushRef.key;
+  }
+  setMyState('student', pin, nick, sid);
+  showOnly('loading');
+  subscribeRoom(pin, () => rerender());
+};
+
+function renderStudentWait(){
+  el('wait-pin').textContent = room.pin;
+  el('wait-mynick').textContent = myNick;
+  el('wait-students').innerHTML = room._studentsArr.map(s => {
+    const teamCls = s.team ? 'team-' + String.fromCharCode(64 + s.team) : '';
+    const me = s.nickname === myNick ? ' ⭐' : '';
+    const teamTxt = s.team ? ` <small>(팀${s.team})</small>` : '';
+    return `<span class="nickname-tag ${teamCls}">${escapeHtml(s.nickname)}${teamTxt}${me}</span>`;
+  }).join('');
+}
+
+window.leaveRoom = async function(){
+  if (!confirm('방에서 나가시겠습니까?')) return;
+  if (room.status === 'lobby' && myStudentId){
+    if (localMode){
+      delete room.students[myStudentId];
+      await saveRoom(room);
+    } else {
+      await db.ref('rooms/'+room.pin+'/students/'+myStudentId).remove();
+    }
+  }
+  backToMenu();
+};
+
+// ==================== 게임 시작 ====================
+window.startGame = async function(){
+  const arr = room._studentsArr;
+  if (arr.length === 0) return;
+  const players = arr.map(s => ({
+    name: s.nickname,
+    team: s.team ? '팀'+s.team : null,
+    money: STARTING_MONEY, hunger: 70, happy: 60, stress: 30,
+    day: 1, alive: true, finished: false, log: [],
+  }));
+  await updateRoom(room.pin, { players, status:'playing', currentIdx: 0 });
+};
+
+function currentPlayer(){ return room.players ? room.players[room.currentIdx] : null; }
+
+function renderTurn(){
+  const p = currentPlayer();
+  el('game-pin').textContent = room.pin;
+  el('game-mode').textContent = room.mode === 'team' ? '팀전' : '개인전';
+  if (!p){ finishAll(); return; }
+  if (p.finished){ nextPlayerTurn(); return; }
+
+  const isMyTurn = (myRole === 'teacher') || (myRole === 'student' && p.name === myNick);
+  if (!isMyTurn){
+    el('turn-banner').innerHTML = `⏳ 현재 <b>${escapeHtml(p.name)}</b>의 차례입니다. 기다려 주세요.`;
+    el('stats').innerHTML = '';
+    el('meal-actions').innerHTML = el('transport-actions').innerHTML = el('leisure-actions').innerHTML = '';
+    el('next-day-btn').disabled = true;
+    el('exit-btn').classList.add('hidden');
+    renderOverview();
+    renderLog();
+    return;
+  }
+
+  el('exit-btn').classList.toggle('hidden', myRole !== 'teacher');
+  chosenToday = { meal:null, transport:null, leisure:null };
+  el('turn-banner').innerHTML = (p.team ? `🎯 <b>${p.team}</b> · ` : '🎯 ')
+    + `${escapeHtml(p.name)} 차례 — Day ${p.day} / ${TOTAL_DAYS}`;
+  renderStats();
+  renderActions();
+  renderLog();
+  renderOverview();
+  el('next-day-btn').disabled = true;
+}
+
+function renderStats(){
+  const p = currentPlayer();
+  const bar = (v, color) => `<div class="bar"><div class="bar-fill" style="width:${v}%;background:${color}"></div></div>`;
+  el('stats').innerHTML = `
+    <div class="stat"><div class="label">💰 잔액</div><div class="value">${fmt(p.money)}</div></div>
+    <div class="stat"><div class="label">📅 남은 일수</div><div class="value">${TOTAL_DAYS - p.day + 1}일</div></div>
+    <div class="stat"><div class="label">🍚 배고픔</div><div class="value">${p.hunger}</div>${bar(p.hunger,'#ffa94d')}</div>
+    <div class="stat"><div class="label">😊 행복</div><div class="value">${p.happy}</div>${bar(p.happy,'#51cf66')}</div>
+    <div class="stat"><div class="label">😣 스트레스</div><div class="value">${p.stress}</div>${bar(p.stress,'#ff6b6b')}</div>
+  `;
+}
+
+function renderActions(){
+  const p = currentPlayer();
+  const make = (list, key, container) => {
+    el(container).innerHTML = list.map(o => {
+      const disabled = o.cost > p.money ? 'disabled' : '';
+      const sel = chosenToday[key] === o.id ? 'style="border-color:#51cf66;background:#f4fce3;"' : '';
+      return `<button class="action-btn" ${disabled} ${sel} onclick="window.choose('${key}','${o.id}')">
+        <div class="name">${o.name}</div>
+        <div class="desc">${o.desc}</div>
+        <div class="cost">${o.cost === 0 ? '무료' : fmt(o.cost)}</div>
+      </button>`;
+    }).join('');
+  };
+  make(MEALS, 'meal', 'meal-actions');
+  make(TRANSPORTS, 'transport', 'transport-actions');
+  make(LEISURES, 'leisure', 'leisure-actions');
+}
+
+window.choose = function(key, id){
+  chosenToday[key] = id;
+  renderActions();
+  el('next-day-btn').disabled = !(chosenToday.meal && chosenToday.transport && chosenToday.leisure);
+};
+
+window.nextDay = async function(){
+  if (writingNow) return;
+  writingNow = true;
+  try {
+    const players = [...room.players];
+    const p = {...players[room.currentIdx], log: [...(players[room.currentIdx].log||[])]};
+    const meal = MEALS.find(m=>m.id===chosenToday.meal);
+    const trans = TRANSPORTS.find(m=>m.id===chosenToday.transport);
+    const leis = LEISURES.find(m=>m.id===chosenToday.leisure);
+    const totalCost = meal.cost + trans.cost + leis.cost;
+    if (totalCost > p.money){ alert('돈이 부족합니다!'); return; }
+
+    const dayLog = [`<div class="day">━ ${escapeHtml(p.name)} · Day ${p.day} ━</div>`];
+    p.money -= totalCost;
+    p.hunger = clamp(p.hunger + meal.hunger - 5, 0, 100);
+    p.happy = clamp(p.happy + meal.happy + trans.happy + leis.happy, 0, 100);
+    p.stress = clamp(p.stress + meal.stress + trans.stress + leis.stress, 0, 100);
+    dayLog.push(`🍚 ${meal.name} <span class="loss">-${fmt(meal.cost)}</span>`);
+    dayLog.push(`🚌 ${trans.name} <span class="loss">-${fmt(trans.cost)}</span>`);
+    dayLog.push(`🎉 ${leis.name} <span class="loss">-${fmt(leis.cost)}</span>`);
+
+    for (const ev of EVENTS) {
+      if (Math.random() < ev.p) {
+        p.money += ev.money;
+        p.happy = clamp(p.happy + ev.happy, 0, 100);
+        p.stress = clamp(p.stress + ev.stress, 0, 100);
+        dayLog.push(`<span class="event">⚡ ${ev.text}</span>`);
+        break;
+      }
+    }
+    if (p.hunger < 20) { p.happy = clamp(p.happy - 5, 0, 100); p.stress = clamp(p.stress + 8, 0, 100); dayLog.push(`<span class="loss">🚨 너무 배고파요...</span>`); }
+    if (p.stress > 80) { p.happy = clamp(p.happy - 10, 0, 100); dayLog.push(`<span class="loss">😵 스트레스 폭발!</span>`); }
+    if (p.happy < 15) { dayLog.push(`<span class="loss">💔 우울해요...</span>`); }
+
+    p.log.push(dayLog.join('<br>'));
+    p.day++;
+
+    let nextIdx = room.currentIdx;
+    if (p.money < 0) { p.alive = false; p.finished = true; p.endReason = '파산'; p.score = calcScore(p); alert(`${p.name}: 파산! 점수 ${p.score.toLocaleString()}점`); }
+    else if (p.day > TOTAL_DAYS) { p.finished = true; p.endReason = '완주'; p.score = calcScore(p); alert(`${p.name}: 완주! 점수 ${p.score.toLocaleString()}점`); }
+
+    players[room.currentIdx] = p;
+    if (p.finished){
+      const nf = players.findIndex(pl => !pl.finished);
+      if (nf === -1){
+        // 모두 종료
+        const finalPlayers = players.map(pl => pl.score==null ? {...pl, score: calcScore(pl)} : pl);
+        await updateRoom(room.pin, { players: finalPlayers, status: 'finished' });
+        await saveRanking(finalPlayers);
+        return;
+      }
+      nextIdx = nf;
+    }
+    await updateRoom(room.pin, { players, currentIdx: nextIdx });
+  } finally { writingNow = false; }
+};
+
+async function nextPlayerTurn(){
+  const next = room.players.findIndex(pl => !pl.finished);
+  if (next === -1){ finishAll(); return; }
+  await updateRoom(room.pin, { currentIdx: next });
+}
+
+function calcScore(p){
+  return Math.max(0, Math.round(p.money + p.happy * 1000 - p.stress * 500 + (p.alive ? 30000 : 0)));
+}
+
+function renderLog(){
+  const p = currentPlayer();
+  if (!p) { el('log').innerHTML = ''; return; }
+  el('log').innerHTML = (p.log||[]).slice(-10).reverse().join('<br><br>') || '<span class="muted">아직 기록이 없습니다.</span>';
+}
+
+function renderOverview(){
+  if (!room.players || room.players.length <= 1){ el('players-overview').classList.add('hidden'); return; }
+  el('players-overview').classList.remove('hidden');
+  el('players-overview').innerHTML = '<h3>👥 참가자 현황</h3>' +
+    room.players.map((pl, i) => `
+      <div class="player-card ${i===room.currentIdx?'active':''} ${pl.finished?'done':''}">
+        <span><b>${pl.team?`[${pl.team}] `:''}${escapeHtml(pl.name)}</b>
+        ${pl.finished ? `<span class="badge ${pl.alive?'solo':'team'}">${pl.endReason}</span>` : `Day ${pl.day}`}</span>
+        <span>잔액 ${fmt(pl.money)} · 행복 ${pl.happy} · 스트레스 ${pl.stress}</span>
+      </div>
+    `).join('');
+}
+
+window.confirmQuit = async function(){
+  if (myRole !== 'teacher' && (myRole !== 'student' || currentPlayer().name !== myNick)) return;
+  if (!confirm('현재 플레이어를 포기 처리할까요? 점수가 기록됩니다.')) return;
+  const players = [...room.players];
+  const p = {...players[room.currentIdx]};
+  p.finished = true; p.alive = false; p.endReason = '포기'; p.score = calcScore(p);
+  players[room.currentIdx] = p;
+  const nf = players.findIndex(pl => !pl.finished);
+  if (nf === -1){
+    await updateRoom(room.pin, { players, status:'finished' });
+    await saveRanking(players);
+  } else {
+    await updateRoom(room.pin, { players, currentIdx: nf });
+  }
+};
+
+window.exitGame = async function(){
+  if (myRole !== 'teacher') return;
+  if (!confirm('게임을 종료하고 결과 화면으로 이동할까요?')) return;
+  const players = room.players.map(p => {
+    if (p.finished) return p;
+    return { ...p, finished:true, endReason:'중단', score: calcScore(p) };
+  });
+  await updateRoom(room.pin, { players, status:'finished' });
+  await saveRanking(players);
+};
+
+async function finishAll(){
+  const players = room.players.map(p => p.score==null ? {...p, score: calcScore(p)} : p);
+  await updateRoom(room.pin, { players, status:'finished' });
+  await saveRanking(players);
+}
+
+function renderResult(){
+  el('result-title').textContent = room.mode==='team' ? '🏁 팀전 결과' : '🏁 개인전 결과';
+  let html = `<div class="room-info"><span>PIN: <b>${room.pin}</b></span><span>모드: <b>${room.mode==='team'?'팀전':'개인전'}</b></span></div>`;
+  if (room.mode === 'team'){
+    const teams = {};
+    room.players.forEach(p => {
+      if (!teams[p.team]) teams[p.team] = { name: p.team, members: [], total: 0 };
+      teams[p.team].members.push(p);
+      teams[p.team].total += (p.score||0);
+    });
+    const sorted = Object.values(teams).sort((a,b)=>b.total-a.total);
+    html += '<h3>🥇 팀 순위</h3><table class="ranking"><tr><th>순위</th><th>팀</th><th>합산</th><th>멤버</th></tr>';
+    sorted.forEach((t,i) => {
+      html += `<tr><td>${i+1}</td><td><b>${t.name}</b></td><td>${t.total.toLocaleString()}</td><td>${t.members.map(m=>`${escapeHtml(m.name)}(${(m.score||0).toLocaleString()})`).join(', ')}</td></tr>`;
+    });
+    html += '</table>';
+  }
+  const psorted = [...room.players].sort((a,b)=>(b.score||0)-(a.score||0));
+  html += '<h3 style="margin-top:18px;">👤 개인 순위</h3><table class="ranking"><tr><th>순위</th><th>이름</th>'
+    + (room.mode==='team'?'<th>팀</th>':'') + '<th>점수</th><th>잔액</th><th>결과</th></tr>';
+  psorted.forEach((p,i) => {
+    html += `<tr><td>${i+1}</td><td>${escapeHtml(p.name)}</td>${room.mode==='team'?`<td>${p.team}</td>`:''}<td><b>${(p.score||0).toLocaleString()}</b></td><td>${fmt(p.money)}</td><td>${p.endReason||'완주'}</td></tr>`;
+  });
+  html += '</table>';
+  el('result-body').innerHTML = html;
+}
+
+// ==================== 랭킹 (전체 공유) ====================
+async function saveRanking(players){
+  if (myRole !== 'teacher') return; // 선생님 클라이언트만 기록 (중복 방지)
+  const date = new Date().toLocaleString('ko-KR');
+  const entries = [];
+  if (room.mode === 'team'){
+    const teams = {};
+    players.forEach(p => {
+      if (!teams[p.team]) teams[p.team] = { name: p.team, total:0, members:[] };
+      teams[p.team].total += (p.score||0);
+      teams[p.team].members.push(p.name);
+    });
+    Object.values(teams).forEach(t => {
+      entries.push({ mode:'team', name:t.name, members:t.members, score:t.total, date, pin:room.pin });
+    });
+  }
+  players.forEach(p => {
+    entries.push({ mode:'solo', name:p.name, team:p.team||null, score:p.score||0, date, pin:room.pin });
+  });
+  if (localMode){
+    const data = JSON.parse(localStorage.getItem('money_ranking') || '[]');
+    data.push(...entries);
+    localStorage.setItem('money_ranking', JSON.stringify(data.slice(-500)));
+  } else {
+    for (const e of entries) await db.ref('ranking').push(e);
+  }
+}
+
+let rankFilter = 'all';
+window.showRanking = async function(){
+  showOnly('ranking');
+  el('ranking-body').innerHTML = '<p class="muted center">불러오는 중...</p>';
+  let data = [];
+  if (localMode){
+    data = JSON.parse(localStorage.getItem('money_ranking') || '[]');
+  } else {
+    const snap = await db.ref('ranking').get();
+    const v = snap.val() || {};
+    data = Object.values(v);
+  }
+  window._rankData = data;
+  renderRanking();
+};
+window.filterRank = function(f){ rankFilter = f; renderRanking(); };
+function renderRanking(){
+  const data = window._rankData || [];
+  const filtered = data.filter(r => rankFilter==='all' || r.mode===rankFilter)
+    .sort((a,b)=>b.score-a.score).slice(0, 50);
+  if (filtered.length === 0){ el('ranking-body').innerHTML = '<p class="muted center">아직 기록이 없습니다.</p>'; return; }
+  let html = '<table class="ranking"><tr><th>순위</th><th>모드</th><th>이름</th><th>점수</th><th>일자</th></tr>';
+  filtered.forEach((r,i) => {
+    const badge = r.mode==='team' ? '<span class="badge team">팀</span>' : '<span class="badge solo">개인</span>';
+    const name = r.mode==='team' ? `${escapeHtml(r.name)} <small class="muted">(${(r.members||[]).map(escapeHtml).join(', ')})</small>` : escapeHtml(r.name);
+    html += `<tr><td>${i+1}</td><td>${badge}</td><td>${name}</td><td><b>${r.score.toLocaleString()}</b></td><td class="muted">${r.date}</td></tr>`;
+  });
+  html += '</table>';
+  el('ranking-body').innerHTML = html;
+}
+window.clearRank = async function(){
+  if (!confirm('모든 랭킹 기록을 삭제할까요? (전체 사용자 영향)')) return;
+  if (localMode) localStorage.removeItem('money_ranking');
+  else await db.ref('ranking').remove();
+  window._rankData = [];
+  renderRanking();
+};
+
+// ==================== 시작 ====================
+initFirebase();
+</script>
+</body>
+</html>
