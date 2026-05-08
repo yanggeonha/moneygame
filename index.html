@@ -127,6 +127,24 @@
   ol li { margin-bottom: 8px; line-height: 1.6; }
   @keyframes pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.03); } }
   .pulse { animation: pulse 1.5s infinite; }
+  .game-layout { display: grid; grid-template-columns: 290px 1fr; gap: 20px; align-items: start; }
+  @media (max-width: 800px) { .game-layout { grid-template-columns: 1fr; } }
+  .ranking-sidebar { position: sticky; top: 12px; padding: 18px; max-height: calc(100vh - 24px); overflow-y: auto; }
+  .rank-item {
+    display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 8px;
+    margin-bottom: 6px; background: #f6f8ff; font-size: 13px; transition: all .2s;
+  }
+  .rank-item.me { background: linear-gradient(135deg, #ffd43b, #fab005); color: #5c3d00; box-shadow: 0 4px 10px rgba(250,176,5,.3); }
+  .rank-item.done { opacity: .65; }
+  .rank-item .pos { font-weight: 800; min-width: 26px; font-size: 15px; }
+  .rank-item .pos.gold { color: #f59f00; }
+  .rank-item .pos.silver { color: #868e96; }
+  .rank-item .pos.bronze { color: #d9480f; }
+  .rank-item .info { flex: 1; min-width: 0; }
+  .rank-item .info b { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .rank-item .info small { color: #666; font-size: 11px; }
+  .rank-item.me .info small { color: #5c3d00; }
+  .rank-item .score { font-weight: 700; font-size: 13px; text-align: right; }
 </style>
 </head>
 <body>
@@ -293,31 +311,38 @@
       <div class="room-info" style="margin:0;">
         <span>PIN: <b id="game-pin"></b></span>
         <span>모드: <b id="game-mode"></b></span>
-        <span class="muted">☁️ 클라우드 자동 저장</span>
+        <span class="muted">☁️ 실시간 동기화</span>
       </div>
     </div>
-    <div id="players-overview" class="card"></div>
-    <div class="card">
-      <div id="turn-banner" class="turn-banner"></div>
-      <div class="stats" id="stats"></div>
-      <div id="game-controls">
-        <h3>📅 오늘 무엇을 할까요?</h3>
-        <h3 style="font-size:14px; color:#666;">🍚 식사 (필수)</h3>
-        <div class="actions" id="meal-actions"></div>
-        <h3 style="font-size:14px; color:#666;">🚌 교통</h3>
-        <div class="actions" id="transport-actions"></div>
-        <h3 style="font-size:14px; color:#666;">🎉 여가 (선택)</h3>
-        <div class="actions" id="leisure-actions"></div>
-        <div style="margin-top:18px;" class="row">
-          <button class="btn" id="next-day-btn" onclick="nextDay()" disabled>하루 마감 ➡️</button>
-          <button class="btn secondary" onclick="confirmQuit()">현재 플레이어 포기</button>
-          <button class="btn danger" onclick="exitGame()" id="exit-btn">게임 종료</button>
+    <div class="game-layout">
+      <div class="card ranking-sidebar">
+        <h3 style="margin-top:0;">🏆 실시간 순위</h3>
+        <div id="live-ranking"></div>
+      </div>
+      <div>
+        <div class="card">
+          <div id="turn-banner" class="turn-banner"></div>
+          <div class="stats" id="stats"></div>
+          <div id="game-controls">
+            <h3>📅 오늘 무엇을 할까요?</h3>
+            <h3 style="font-size:14px; color:#666;">🍚 식사 (필수)</h3>
+            <div class="actions" id="meal-actions"></div>
+            <h3 style="font-size:14px; color:#666;">🚌 교통</h3>
+            <div class="actions" id="transport-actions"></div>
+            <h3 style="font-size:14px; color:#666;">🎉 여가 (선택)</h3>
+            <div class="actions" id="leisure-actions"></div>
+            <div style="margin-top:18px;" class="row">
+              <button class="btn" id="next-day-btn" onclick="nextDay()" disabled>하루 마감 ➡️</button>
+              <button class="btn secondary" onclick="confirmQuit()" id="quit-btn">포기</button>
+              <button class="btn danger hidden" onclick="exitGame()" id="exit-btn">게임 강제 종료</button>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <h3 style="margin-top:0;">📜 나의 일지</h3>
+          <div class="log" id="log"></div>
         </div>
       </div>
-    </div>
-    <div class="card">
-      <h3>📜 일지</h3>
-      <div class="log" id="log"></div>
     </div>
   </div>
 
@@ -622,7 +647,10 @@ function rerender(){
   if (myRole === 'teacher') {
     if (room.status === 'lobby') { showOnly('teacher-lobby'); renderTeacherLobby(); }
     else if (room.status === 'playing') { showOnly('game'); renderTurn(); }
-    else if (room.status === 'finished') { showOnly('result'); renderResult(); }
+    else if (room.status === 'finished') {
+      if (!window._rankSaved){ window._rankSaved = true; saveRanking(room.players); }
+      showOnly('result'); renderResult();
+    }
   } else if (myRole === 'student') {
     if (room.status === 'lobby') { showOnly('student-wait'); renderStudentWait(); }
     else if (room.status === 'playing') { showOnly('game'); renderTurn(); }
@@ -634,6 +662,7 @@ window.backToMenu = function(){
   if (roomUnsub){ roomUnsub(); roomUnsub = null; }
   setMyState(null,null,null,null);
   room = null;
+  window._rankSaved = false;
   showOnly('menu');
 };
 
@@ -814,40 +843,102 @@ window.startGame = async function(){
   await updateRoom(room.pin, { players, status:'playing', currentIdx: 0 });
 };
 
-function currentPlayer(){ return room.players ? room.players[room.currentIdx] : null; }
+function myPlayerIndex(){
+  if (!room || !room.players) return -1;
+  if (myRole !== 'student') return -1;
+  return room.players.findIndex(p => p.name === myNick);
+}
+function myPlayer(){
+  const i = myPlayerIndex();
+  return i >= 0 ? room.players[i] : null;
+}
+function liveScore(p){
+  if (p.finished) return p.score || 0;
+  return Math.max(0, Math.round((p.money||0) + (p.happy||0)*1000 - (p.stress||0)*500));
+}
 
 function renderTurn(){
-  const p = currentPlayer();
   el('game-pin').textContent = room.pin;
   el('game-mode').textContent = room.mode === 'team' ? '팀전' : '개인전';
-  if (!p){ finishAll(); return; }
-  if (p.finished){ nextPlayerTurn(); return; }
+  renderLiveRanking();
 
-  const isMyTurn = (myRole === 'teacher') || (myRole === 'student' && p.name === myNick);
-  if (!isMyTurn){
-    el('turn-banner').innerHTML = `⏳ 현재 <b>${escapeHtml(p.name)}</b>의 차례입니다. 기다려 주세요.`;
-    el('stats').innerHTML = '';
+  // 모두 끝났는지 확인 (선생님이 트리거)
+  if (room.players && room.players.length > 0 && room.players.every(p => p.finished) && room.status === 'playing'){
+    if (myRole === 'teacher') finishAll();
+  }
+
+  if (myRole === 'teacher'){
+    el('turn-banner').innerHTML = '👨‍🏫 관전 중 — 학생들이 자기 페이스대로 플레이하고 있습니다';
+    el('stats').innerHTML = renderTeacherOverview();
     el('meal-actions').innerHTML = el('transport-actions').innerHTML = el('leisure-actions').innerHTML = '';
-    el('next-day-btn').disabled = true;
-    el('exit-btn').classList.add('hidden');
-    renderOverview();
-    renderLog();
+    hideEl('next-day-btn'); hideEl('quit-btn');
+    showEl('exit-btn');
+    el('log').innerHTML = '<span class="muted">학생별 일지는 각자 화면에 표시됩니다. 좌측 순위에서 진행 상황을 확인하세요.</span>';
     return;
   }
 
-  el('exit-btn').classList.toggle('hidden', myRole !== 'teacher');
+  // 학생
+  const p = myPlayer();
+  hideEl('exit-btn');
+  if (!p){
+    el('turn-banner').innerHTML = '⚠️ 게임 데이터에서 본인 정보를 찾을 수 없습니다.';
+    el('stats').innerHTML = '';
+    el('meal-actions').innerHTML = el('transport-actions').innerHTML = el('leisure-actions').innerHTML = '';
+    return;
+  }
+  if (p.finished){
+    el('turn-banner').innerHTML = `🏁 ${escapeHtml(p.name)} — 게임 종료! ${p.endReason} · 점수 <b>${(p.score||0).toLocaleString()}</b>`;
+    el('stats').innerHTML = '';
+    el('meal-actions').innerHTML = el('transport-actions').innerHTML = el('leisure-actions').innerHTML = '';
+    hideEl('next-day-btn'); hideEl('quit-btn');
+    renderLog(p);
+    return;
+  }
+  showEl('next-day-btn'); showEl('quit-btn');
   chosenToday = { meal:null, transport:null, leisure:null };
   el('turn-banner').innerHTML = (p.team ? `🎯 <b>${p.team}</b> · ` : '🎯 ')
-    + `${escapeHtml(p.name)} 차례 — Day ${p.day} / ${TOTAL_DAYS}`;
-  renderStats();
-  renderActions();
-  renderLog();
-  renderOverview();
+    + `${escapeHtml(p.name)} — Day ${p.day} / ${TOTAL_DAYS}`;
+  renderStats(p);
+  renderActions(p);
+  renderLog(p);
   el('next-day-btn').disabled = true;
 }
 
-function renderStats(){
-  const p = currentPlayer();
+function renderLiveRanking(){
+  const players = (room.players || []).map((p,i) => ({...p, idx:i, _live: liveScore(p)}));
+  players.sort((a,b) => b._live - a._live);
+  if (players.length === 0){
+    el('live-ranking').innerHTML = '<p class="muted">참가자가 없습니다.</p>';
+    return;
+  }
+  const html = players.map((p, rank) => {
+    const isMe = (myRole === 'student' && p.name === myNick);
+    const posCls = rank===0?'gold':rank===1?'silver':rank===2?'bronze':'';
+    const status = p.finished
+      ? `${p.endReason||'완료'}`
+      : `Day ${p.day} · 💰${(p.money/1000).toFixed(0)}k · 🍚${p.hunger} · 😊${p.happy} · 😣${p.stress}`;
+    const teamTxt = p.team ? `[${p.team}] ` : '';
+    return `<div class="rank-item ${isMe?'me':''} ${p.finished?'done':''}">
+      <span class="pos ${posCls}">${rank+1}</span>
+      <div class="info"><b>${teamTxt}${escapeHtml(p.name)}${isMe?' ⭐':''}</b><small>${status}</small></div>
+      <span class="score">${p._live.toLocaleString()}</span>
+    </div>`;
+  }).join('');
+  el('live-ranking').innerHTML = html;
+}
+
+function renderTeacherOverview(){
+  const total = room.players.length;
+  const done = room.players.filter(p => p.finished).length;
+  const playing = total - done;
+  return `
+    <div class="stat"><div class="label">총 참가자</div><div class="value">${total}</div></div>
+    <div class="stat"><div class="label">진행 중</div><div class="value">${playing}</div></div>
+    <div class="stat"><div class="label">완료</div><div class="value">${done}</div></div>
+  `;
+}
+
+function renderStats(p){
   const bar = (v, color) => `<div class="bar"><div class="bar-fill" style="width:${v}%;background:${color}"></div></div>`;
   el('stats').innerHTML = `
     <div class="stat"><div class="label">💰 잔액</div><div class="value">${fmt(p.money)}</div></div>
@@ -858,8 +949,7 @@ function renderStats(){
   `;
 }
 
-function renderActions(){
-  const p = currentPlayer();
+function renderActions(p){
   const make = (list, key, container) => {
     el(container).innerHTML = list.map(o => {
       const disabled = o.cost > p.money ? 'disabled' : '';
@@ -878,23 +968,25 @@ function renderActions(){
 
 window.choose = function(key, id){
   chosenToday[key] = id;
-  renderActions();
+  const p = myPlayer();
+  if (p) renderActions(p);
   el('next-day-btn').disabled = !(chosenToday.meal && chosenToday.transport && chosenToday.leisure);
 };
 
 window.nextDay = async function(){
   if (writingNow) return;
+  const myIdx = myPlayerIndex();
+  if (myIdx < 0) return;
   writingNow = true;
   try {
-    const players = [...room.players];
-    const p = {...players[room.currentIdx], log: [...(players[room.currentIdx].log||[])]};
+    const p = {...room.players[myIdx], log: [...(room.players[myIdx].log||[])]};
     const meal = MEALS.find(m=>m.id===chosenToday.meal);
     const trans = TRANSPORTS.find(m=>m.id===chosenToday.transport);
     const leis = LEISURES.find(m=>m.id===chosenToday.leisure);
     const totalCost = meal.cost + trans.cost + leis.cost;
     if (totalCost > p.money){ alert('돈이 부족합니다!'); return; }
 
-    const dayLog = [`<div class="day">━ ${escapeHtml(p.name)} · Day ${p.day} ━</div>`];
+    const dayLog = [`<div class="day">━ Day ${p.day} ━</div>`];
     p.money -= totalCost;
     p.hunger = clamp(p.hunger + meal.hunger - 5, 0, 100);
     p.happy = clamp(p.happy + meal.happy + trans.happy + leis.happy, 0, 100);
@@ -919,86 +1011,56 @@ window.nextDay = async function(){
     p.log.push(dayLog.join('<br>'));
     p.day++;
 
-    let nextIdx = room.currentIdx;
-    if (p.money < 0) { p.alive = false; p.finished = true; p.endReason = '파산'; p.score = calcScore(p); alert(`${p.name}: 파산! 점수 ${p.score.toLocaleString()}점`); }
-    else if (p.day > TOTAL_DAYS) { p.finished = true; p.endReason = '완주'; p.score = calcScore(p); alert(`${p.name}: 완주! 점수 ${p.score.toLocaleString()}점`); }
+    if (p.money < 0) { p.alive = false; p.finished = true; p.endReason = '파산'; p.score = calcScore(p); }
+    else if (p.day > TOTAL_DAYS) { p.finished = true; p.endReason = '완주'; p.score = calcScore(p); }
 
-    players[room.currentIdx] = p;
-    if (p.finished){
-      const nf = players.findIndex(pl => !pl.finished);
-      if (nf === -1){
-        // 모두 종료
-        const finalPlayers = players.map(pl => pl.score==null ? {...pl, score: calcScore(pl)} : pl);
-        await updateRoom(room.pin, { players: finalPlayers, status: 'finished' });
-        await saveRanking(finalPlayers);
-        return;
-      }
-      nextIdx = nf;
-    }
-    await updateRoom(room.pin, { players, currentIdx: nextIdx });
+    await writePlayer(myIdx, p);
+    if (p.finished) alert(`${p.endReason}! 점수 ${p.score.toLocaleString()}점`);
   } finally { writingNow = false; }
 };
 
-async function nextPlayerTurn(){
-  const next = room.players.findIndex(pl => !pl.finished);
-  if (next === -1){ finishAll(); return; }
-  await updateRoom(room.pin, { currentIdx: next });
+async function writePlayer(idx, p){
+  if (localMode){
+    const players = [...room.players];
+    players[idx] = p;
+    await updateRoom(room.pin, { players });
+  } else {
+    await db.ref('rooms/'+room.pin+'/players/'+idx).set(p);
+  }
 }
 
 function calcScore(p){
   return Math.max(0, Math.round(p.money + p.happy * 1000 - p.stress * 500 + (p.alive ? 30000 : 0)));
 }
 
-function renderLog(){
-  const p = currentPlayer();
+function renderLog(p){
   if (!p) { el('log').innerHTML = ''; return; }
   el('log').innerHTML = (p.log||[]).slice(-10).reverse().join('<br><br>') || '<span class="muted">아직 기록이 없습니다.</span>';
 }
 
-function renderOverview(){
-  if (!room.players || room.players.length <= 1){ el('players-overview').classList.add('hidden'); return; }
-  el('players-overview').classList.remove('hidden');
-  el('players-overview').innerHTML = '<h3>👥 참가자 현황</h3>' +
-    room.players.map((pl, i) => `
-      <div class="player-card ${i===room.currentIdx?'active':''} ${pl.finished?'done':''}">
-        <span><b>${pl.team?`[${pl.team}] `:''}${escapeHtml(pl.name)}</b>
-        ${pl.finished ? `<span class="badge ${pl.alive?'solo':'team'}">${pl.endReason}</span>` : `Day ${pl.day}`}</span>
-        <span>잔액 ${fmt(pl.money)} · 행복 ${pl.happy} · 스트레스 ${pl.stress}</span>
-      </div>
-    `).join('');
-}
-
 window.confirmQuit = async function(){
-  if (myRole !== 'teacher' && (myRole !== 'student' || currentPlayer().name !== myNick)) return;
-  if (!confirm('현재 플레이어를 포기 처리할까요? 점수가 기록됩니다.')) return;
-  const players = [...room.players];
-  const p = {...players[room.currentIdx]};
+  const myIdx = myPlayerIndex();
+  if (myIdx < 0) return;
+  if (!confirm('정말 포기하시겠습니까? 현재 점수로 기록됩니다.')) return;
+  const p = {...room.players[myIdx]};
   p.finished = true; p.alive = false; p.endReason = '포기'; p.score = calcScore(p);
-  players[room.currentIdx] = p;
-  const nf = players.findIndex(pl => !pl.finished);
-  if (nf === -1){
-    await updateRoom(room.pin, { players, status:'finished' });
-    await saveRanking(players);
-  } else {
-    await updateRoom(room.pin, { players, currentIdx: nf });
-  }
+  await writePlayer(myIdx, p);
 };
 
 window.exitGame = async function(){
   if (myRole !== 'teacher') return;
-  if (!confirm('게임을 종료하고 결과 화면으로 이동할까요?')) return;
+  if (!confirm('게임을 강제 종료하시겠습니까? 진행 중인 학생들은 모두 "중단" 처리됩니다.')) return;
   const players = room.players.map(p => {
     if (p.finished) return p;
     return { ...p, finished:true, endReason:'중단', score: calcScore(p) };
   });
   await updateRoom(room.pin, { players, status:'finished' });
-  await saveRanking(players);
 };
 
 async function finishAll(){
+  if (myRole !== 'teacher') return;
   const players = room.players.map(p => p.score==null ? {...p, score: calcScore(p)} : p);
   await updateRoom(room.pin, { players, status:'finished' });
-  await saveRanking(players);
 }
 
 function renderResult(){
