@@ -134,7 +134,7 @@
 
 <div class="app">
   <h1>💸 30만원 살아남기</h1>
-  <p class="subtitle">한 달 용돈 30만원으로 30일을 버텨라!</p>
+  <p class="subtitle">용돈 30만원으로 15일을 버텨라!</p>
 
   <!-- Firebase 설정 안내 -->
   <div id="setup-firebase" class="card hidden">
@@ -199,9 +199,9 @@
     <div id="howto" class="hidden" style="margin-top:18px; padding:14px; background:#f6f8ff; border-radius:10px;">
       <h3>게임 방법</h3>
       <ul style="margin-left:20px; line-height:1.8;">
-        <li>30만원으로 30일을 버티세요.</li>
+        <li>30만원으로 15일을 버티세요.</li>
         <li>매일 식사·교통·여가를 선택합니다.</li>
-        <li><b>배고픔/행복/스트레스</b> 관리. 임계치를 넘으면 페널티!</li>
+        <li><b>배부름/행복/스트레스</b> 관리. 임계치를 넘으면 페널티!</li>
         <li>중간중간 <b>예상치 못한 사건</b>이 일어납니다.</li>
         <li>점수 = 남은 돈 + 행복×1000 - 스트레스×500 + 완주 보너스</li>
         <li>창을 닫아도 자동 복구됩니다.</li>
@@ -366,7 +366,7 @@ const DEFAULT_FIREBASE_CONFIG = {
 
 // ==================== 상수 ====================
 const STARTING_MONEY = 300000;
-const TOTAL_DAYS = 30;
+const TOTAL_DAYS = 15;
 const FB_CFG_KEY = 'money_fb_config';
 const LOCAL_MODE_KEY = 'money_local_mode';
 const MY_ROLE_KEY = 'money_my_role';
@@ -852,7 +852,7 @@ function renderStats(){
   el('stats').innerHTML = `
     <div class="stat"><div class="label">💰 잔액</div><div class="value">${fmt(p.money)}</div></div>
     <div class="stat"><div class="label">📅 남은 일수</div><div class="value">${TOTAL_DAYS - p.day + 1}일</div></div>
-    <div class="stat"><div class="label">🍚 배고픔</div><div class="value">${p.hunger}</div>${bar(p.hunger,'#ffa94d')}</div>
+    <div class="stat"><div class="label">🍚 배부름</div><div class="value">${p.hunger}</div>${bar(p.hunger,'#ffa94d')}</div>
     <div class="stat"><div class="label">😊 행복</div><div class="value">${p.happy}</div>${bar(p.happy,'#51cf66')}</div>
     <div class="stat"><div class="label">😣 스트레스</div><div class="value">${p.stress}</div>${bar(p.stress,'#ff6b6b')}</div>
   `;
