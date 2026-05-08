@@ -391,6 +391,8 @@ const DEFAULT_FIREBASE_CONFIG = {
 
 // ==================== 상수 ====================
 const STARTING_MONEY = 300000;
+const STARTING_HAPPY = 60;
+const STARTING_STRESS = 30;
 const TOTAL_DAYS = 15;
 const FB_CFG_KEY = 'money_fb_config';
 const LOCAL_MODE_KEY = 'money_local_mode';
@@ -854,7 +856,7 @@ function myPlayer(){
 }
 function liveScore(p){
   if (p.finished) return p.score || 0;
-  return Math.max(0, Math.round((p.money||0) + (p.happy||0)*1000 - (p.stress||0)*500));
+  return Math.round((p.money - STARTING_MONEY) + (p.happy - STARTING_HAPPY)*1000 - (p.stress - STARTING_STRESS)*500);
 }
 
 function renderTurn(){
@@ -939,7 +941,7 @@ function renderTeacherOverview(){
 }
 
 function renderStats(p){
-  const bar = (v, color) => `<div class="bar"><div class="bar-fill" style="width:${v}%;background:${color}"></div></div>`;
+  const bar = (v, color) => `<div class="bar"><div class="bar-fill" style="width:${Math.max(0,Math.min(100,v))}%;background:${color}"></div></div>`;
   el('stats').innerHTML = `
     <div class="stat"><div class="label">💰 잔액</div><div class="value">${fmt(p.money)}</div></div>
     <div class="stat"><div class="label">📅 남은 일수</div><div class="value">${TOTAL_DAYS - p.day + 1}일</div></div>
@@ -990,7 +992,7 @@ window.nextDay = async function(){
     p.money -= totalCost;
     p.hunger = clamp(p.hunger + meal.hunger - 5, 0, 100);
     p.happy = clamp(p.happy + meal.happy + trans.happy + leis.happy, 0, 100);
-    p.stress = clamp(p.stress + meal.stress + trans.stress + leis.stress, 0, 100);
+    p.stress = Math.max(0, p.stress + meal.stress + trans.stress + leis.stress);
     dayLog.push(`🍚 ${meal.name} <span class="loss">-${fmt(meal.cost)}</span>`);
     dayLog.push(`🚌 ${trans.name} <span class="loss">-${fmt(trans.cost)}</span>`);
     dayLog.push(`🎉 ${leis.name} <span class="loss">-${fmt(leis.cost)}</span>`);
@@ -999,19 +1001,20 @@ window.nextDay = async function(){
       if (Math.random() < ev.p) {
         p.money += ev.money;
         p.happy = clamp(p.happy + ev.happy, 0, 100);
-        p.stress = clamp(p.stress + ev.stress, 0, 100);
+        p.stress = Math.max(0, p.stress + ev.stress);
         dayLog.push(`<span class="event">⚡ ${ev.text}</span>`);
         break;
       }
     }
-    if (p.hunger < 20) { p.happy = clamp(p.happy - 5, 0, 100); p.stress = clamp(p.stress + 8, 0, 100); dayLog.push(`<span class="loss">🚨 너무 배고파요...</span>`); }
-    if (p.stress > 80) { p.happy = clamp(p.happy - 10, 0, 100); dayLog.push(`<span class="loss">😵 스트레스 폭발!</span>`); }
+    if (p.hunger < 20) { p.happy = clamp(p.happy - 5, 0, 100); p.stress = Math.max(0, p.stress + 8); dayLog.push(`<span class="loss">🚨 너무 배고파요...</span>`); }
+    if (p.stress > 80 && p.stress <= 100) { p.happy = clamp(p.happy - 10, 0, 100); dayLog.push(`<span class="loss">😵 스트레스 한계 직전!</span>`); }
     if (p.happy < 15) { dayLog.push(`<span class="loss">💔 우울해요...</span>`); }
 
     p.log.push(dayLog.join('<br>'));
     p.day++;
 
-    if (p.money < 0) { p.alive = false; p.finished = true; p.endReason = '파산'; p.score = calcScore(p); }
+    if (p.stress > 100) { p.alive = false; p.finished = true; p.endReason = '스트레스 폭발'; p.score = calcScore(p); }
+    else if (p.money < 0) { p.alive = false; p.finished = true; p.endReason = '파산'; p.score = calcScore(p); }
     else if (p.day > TOTAL_DAYS) { p.finished = true; p.endReason = '완주'; p.score = calcScore(p); }
 
     await writePlayer(myIdx, p);
@@ -1030,7 +1033,7 @@ async function writePlayer(idx, p){
 }
 
 function calcScore(p){
-  return Math.max(0, Math.round(p.money + p.happy * 1000 - p.stress * 500 + (p.alive ? 30000 : 0)));
+  return Math.round((p.money - STARTING_MONEY) + (p.happy - STARTING_HAPPY)*1000 - (p.stress - STARTING_STRESS)*500 + (p.alive ? 30000 : 0));
 }
 
 function renderLog(p){
